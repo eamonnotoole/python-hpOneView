@@ -84,6 +84,12 @@ class HPOneViewException(Exception):
         else:
             Exception.__init__(self, self.msg)
 
+    def __reduce__(self):
+        if self.oneview_response:
+            return (Exception, (self.msg, self.oneview_response))
+        else:
+            return (Exception, (self.msg,))
+
 
 class HPOneViewInvalidResource(HPOneViewException):
     """
