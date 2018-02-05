@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###
-# (C) Copyright (2012-2017) Hewlett Packard Enterprise Development LP
+# (C) Copyright (2012-2018) Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,6 @@ from future import standard_library
 
 standard_library.install_aliases()
 
-
 from hpOneView.connection import connection
 from hpOneView.image_streamer.resources.golden_images import GoldenImages
 from hpOneView.image_streamer.resources.plan_scripts import PlanScripts
@@ -44,8 +43,8 @@ from hpOneView.image_streamer.resources.deployment_groups import DeploymentGroup
 
 
 class ImageStreamerClient(object):
-    def __init__(self, ip, session_id, api_version, sslBundle=False):
-        self.__connection = connection(ip, api_version, sslBundle)
+    def __init__(self, ip, session_id, api_version, sslBundle=False, timeout=None, reuse_connection=False):
+        self.__connection = connection(ip, api_version, sslBundle, timeout, reuse_connection)
         self.__connection.set_session_id(session_id)
         self.__golden_images = None
         self.__plan_scripts = None

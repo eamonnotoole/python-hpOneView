@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###
-# (C) Copyright (2012-2017) Hewlett Packard Enterprise Development LP
+# (C) Copyright (2012-2018) Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -117,7 +117,7 @@ class OneViewClient(object):
 
     def __init__(self, config):
         self.__connection = connection(config["ip"], config.get('api_version', self.DEFAULT_API_VERSION), config.get('ssl_certificate', False),
-                                       config.get('timeout'))
+                                       config.get('timeout'), config.get('reuse_connection', False))
         self.__image_streamer_ip = config.get("image_streamer_ip")
         self.__set_proxy(config)
         self.__connection.login(config["credentials"])
@@ -218,7 +218,7 @@ class OneViewClient(object):
 
         Allowed variables: ONEVIEWSDK_IP (required), ONEVIEWSDK_USERNAME (required), ONEVIEWSDK_PASSWORD (required),
         ONEVIEWSDK_AUTH_LOGIN_DOMAIN, ONEVIEWSDK_API_VERSION, ONEVIEWSDK_IMAGE_STREAMER_IP, ONEVIEWSDK_SESSIONID, ONEVIEWSDK_SSL_CERTIFICATE,
-        ONEVIEWSDK_CONNECTION_TIMEOUT and ONEVIEWSDK_PROXY.
+        ONEVIEWSDK_CONNECTION_TIMEOUT, ONEVIEWSDK_PROXY and ONEVIEWSDK_REUSE_CONNECTION.
 
         Returns:
             OneViewClient:
@@ -233,13 +233,14 @@ class OneViewClient(object):
         proxy = os.environ.get('ONEVIEWSDK_PROXY', '')
         sessionID = os.environ.get('ONEVIEWSDK_SESSIONID', '')
         timeout = os.environ.get('ONEVIEWSDK_CONNECTION_TIMEOUT')
+        reuse_connection = bool(os.environ.get('ONEVIEWSDK_REUSE_CONNECTION', ''))
 
         config = dict(ip=ip,
                       image_streamer_ip=image_streamer_ip,
                       api_version=api_version,
                       ssl_certificate=ssl_certificate,
                       credentials=dict(userName=username, authLoginDomain=auth_login_domain, password=password, sessionID=sessionID),
-                      proxy=proxy, timeout=timeout)
+                      proxy=proxy, timeout=timeout, reuse_connection=reuse_connection)
 
         return cls(config)
 
@@ -289,7 +290,9 @@ class OneViewClient(object):
         image_streamer = ImageStreamerClient(self.__image_streamer_ip,
                                              self.__connection.get_session_id(),
                                              self.__connection._apiVersion,
-                                             self.__connection._sslBundle)
+                                             self.__connection._sslBundle,
+                                             self.__connection._timeout,
+                                             self.__connection._reuse_connection)
 
         return image_streamer
 

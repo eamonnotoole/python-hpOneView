@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###
-# (C) Copyright (2012-2017) Hewlett Packard Enterprise Development LP
+# (C) Copyright (2012-2018) Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -100,7 +100,8 @@ OS_ENVIRON_CONFIG_FULL = {
     'ONEVIEWSDK_API_VERSION': '201',
     'ONEVIEWSDK_AUTH_LOGIN_DOMAIN': 'authdomain',
     'ONEVIEWSDK_PROXY': '172.16.100.195:9999',
-    'ONEVIEWSDK_CONNECTION_TIMEOUT': '20'
+    'ONEVIEWSDK_CONNECTION_TIMEOUT': '20',
+    'ONEVIEWSDK_REUSE_CONNECTION': 'Yes'
 }
 
 OS_ENVIRON_CONFIG_FULL_WITH_SESSIONID = {
@@ -111,8 +112,8 @@ OS_ENVIRON_CONFIG_FULL_WITH_SESSIONID = {
     'ONEVIEWSDK_SESSIONID': '123',
     'ONEVIEWSDK_API_VERSION': '201',
     'ONEVIEWSDK_PROXY': '172.16.100.195:9999',
-    'ONEVIEWSDK_CONNECTION_TIMEOUT': '20'
-
+    'ONEVIEWSDK_CONNECTION_TIMEOUT': '20',
+    'ONEVIEWSDK_REUSE_CONNECTION': 'Yes'
 }
 
 
@@ -300,6 +301,7 @@ class OneViewClientTest(unittest.TestCase):
         mock_cls.assert_called_once_with({'api_version': 201,
                                           'proxy': '172.16.100.195:9999',
                                           'timeout': '20',
+                                          'reuse_connection': True,
                                           'ip': '172.16.100.199',
                                           'ssl_certificate': '',
                                           'image_streamer_ip': '172.172.172.172',
@@ -317,6 +319,7 @@ class OneViewClientTest(unittest.TestCase):
         mock_cls.assert_called_once_with({'api_version': 201,
                                           'proxy': '172.16.100.195:9999',
                                           'timeout': '20',
+                                          'reuse_connection': True,
                                           'ip': '172.16.100.199',
                                           'image_streamer_ip': '172.172.172.172',
                                           'ssl_certificate': '',
@@ -334,6 +337,7 @@ class OneViewClientTest(unittest.TestCase):
         mock_cls.assert_called_once_with({'api_version': 300,
                                           'proxy': '',
                                           'timeout': None,
+                                          'reuse_connection': False,
                                           'ip': '172.16.100.199',
                                           'image_streamer_ip': '',
                                           'ssl_certificate': '',

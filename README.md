@@ -99,6 +99,7 @@ export ONEVIEWSDK_AUTH_LOGIN_DOMAIN='authdomain'
 export ONEVIEWSDK_SSL_CERTIFICATE='<path_to_cert.crt_file>'
 export ONEVIEWSDK_PROXY='<proxy_host>:<proxy_port>'
 export ONEVIEWSDK_CONNECTION_TIMEOUT='<connection time-out in seconds>'
+export ONEVIEWSDK_REUSE_CONNECTION='<string>'
 ```
 
 :lock: Tip: Make sure no unauthorized person has access to the environment variables, since the password is stored in clear-text.
@@ -258,6 +259,22 @@ export ONEVIEWSDK_CONNECTION_TIMEOUT='<connection time-out in seconds>'
 ```json
 "timeout": <timeout in seconds>
 ```
+
+
+### Reuse https connections
+By default a new https connection is made and subsequently closed for each SDK transaction. To
+change this so that the https_connection is reused then either:
+
+1. Set the appropriate environment variable:
+```bash
+export ONEVIEWSDK_REUSE_CONNECTION='<any non-null string, eg Yes>'
+```
+
+2. Set the reuse_connection flag in the JSON configuration file:
+```bash
+"reuse_connection": true
+```
+
 
 ## Exception handling
 

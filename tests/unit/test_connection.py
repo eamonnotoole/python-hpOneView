@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###
-# (C) Copyright (2016-2017) Hewlett Packard Enterprise Development LP
+# (C) Copyright (2016-2018) Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -603,6 +603,25 @@ class ConnectionTest(unittest.TestCase):
             self.assertEqual(e.msg, 'Error 500')
         else:
             self.fail()
+
+    @patch.object(connection, 'get_connection')
+    def test_reuse_connection(self, mock_get_conn):
+        mock_conn = Mock()
+        mock_get_conn.return_value = mock_conn
+
+        mock_response = mock_conn.getresponse.return_value
+        mock_response.read.return_value = json.dumps('').encode('utf-8')
+        mock_response.status = 202
+
+        try:
+            self.connection._reuse_connection = True
+            self.connection.do_http('GET', '/rest', None)
+            self.assertEqual(self.connection._conn, mock_conn)
+            self.connection.close_reusable_connection(mock_conn)
+            self.assertEqual(self.connection._conn, None)
+        finally:
+            self.connection._reuse_connection = False
+            self.connection._conn = None
 
     @patch.object(connection, 'get_connection')
     def test_download_to_stream_with_timeout_error(self, mock_get_connection):

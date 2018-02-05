@@ -21,5 +21,6 @@
   "storage_system_password": "",
   "power_device_hostname": "",
   "power_device_username": "",
-  "power_device_password": ""
+  "power_device_password": "",
+  "reuse_connection": true
 }

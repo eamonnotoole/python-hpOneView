@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*
 ###
-# (C) Copyright (2012-2017) Hewlett Packard Enterprise Development LP
+# (C) Copyright (2012-2018) Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 class connection(object):
-    def __init__(self, applianceIp, api_version=300, sslBundle=False, timeout=None):
+    def __init__(self, applianceIp, api_version=300, sslBundle=False, timeout=None, reuse_connection=False):
         self._session = None
         self._host = applianceIp
         self._cred = None
@@ -75,6 +75,10 @@ class connection(object):
         self._numDisplayedRecords = 0
         self._validateVersion = False
         self._timeout = timeout
+        self._reuse_connection = reuse_connection
+        if self._reuse_connection:
+            self._headers['Connection'] = 'keep-alive'
+        self._conn = None
 
     def validateVersion(self):
         version = self.get(uri['version'])
@@ -120,11 +124,11 @@ class connection(object):
         if custom_headers:
             http_headers.update(custom_headers)
 
-        bConnected = False
         conn = None
+        bConnected = False
         while bConnected is False:
             try:
-                conn = self.get_connection()
+                conn = self.get_reusable_connection()
                 conn.request(method, path, body, http_headers)
                 resp = conn.getresponse()
                 tempbytes = ''
@@ -133,7 +137,8 @@ class connection(object):
                     tempbody = tempbytes.decode('utf-8')
                 except UnicodeDecodeError:  # Might be binary data
                     tempbody = tempbytes
-                    conn.close()
+                    if not self._reuse_connection:
+                        self.close_reusable_connection(conn)
                     bConnected = True
                     return resp, tempbody
                 if tempbody:
@@ -141,15 +146,16 @@ class connection(object):
                         body = json.loads(tempbody)
                     except ValueError:
                         body = tempbody
-                conn.close()
+                if not self._reuse_connection:
+                    self.close_reusable_connection(conn)
                 bConnected = True
             except http.client.BadStatusLine:
                 logger.warning('Bad Status Line. Trying again...')
-                if conn:
-                    conn.close()
+                self.close_reusable_connection(conn)
                 time.sleep(1)
                 continue
             except http.client.HTTPException:
+                self.close_reusable_connection(conn)
                 raise HPOneViewException('Failure during login attempt.\n %s' % traceback.format_exc())
 
         return resp, body
@@ -165,7 +171,7 @@ class connection(object):
         successful_connected = False
         while not successful_connected:
             try:
-                conn = self.get_connection()
+                conn = self.get_reusable_connection()
                 conn.request(method, url, body, http_headers)
                 resp = conn.getresponse()
 
@@ -178,15 +184,16 @@ class connection(object):
                     if tempbytes:  # filter out keep-alive new chunks
                         stream_writer.write(tempbytes)
 
-                conn.close()
+                if not self._reuse_connection:
+                    self.close_reusable_connection(conn)
                 successful_connected = True
             except http.client.BadStatusLine:
                 logger.warning('Bad Status Line. Trying again...')
-                if conn:
-                    conn.close()
+                self.close_reusable_connection(conn)
                 time.sleep(1)
                 continue
             except http.client.HTTPException:
+                self.close_reusable_connection(conn)
                 raise HPOneViewException('Failure during login attempt.\n %s' % traceback.format_exc())
 
         return successful_connected
@@ -201,12 +208,27 @@ class connection(object):
                 body = tempbody
         except UnicodeDecodeError:  # Might be binary data
             body = tempbytes
-            conn.close()
+            self.close_reusable_connection(conn)
         if not body:
             body = "Error " + str(resp.status)
 
-        conn.close()
+        self.close_reusable_connection(conn)
         raise HPOneViewException(body)
+
+    def get_reusable_connection(self):
+        if self._reuse_connection:
+            if not self._conn:
+                logger.debug('Creating new connection')
+                self._conn = self.get_connection()
+            conn = self._conn
+        else:
+            conn = self.get_connection()
+        return conn
+
+    def close_reusable_connection(self, conn):
+        if conn:
+            conn.close()
+        self._conn = None
 
     def get_connection(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
@@ -290,7 +312,7 @@ class connection(object):
         mappedfile = mmap.mmap(inputfile.fileno(), 0, access=mmap.ACCESS_READ)
         if verbose is True:
             print(('Uploading ' + files + '...'))
-        conn = self.get_connection()
+        conn = self.get_reusable_connection()
         # conn.set_debuglevel(1)
         conn.connect()
         conn.putrequest('POST', uri)
@@ -300,6 +322,8 @@ class connection(object):
         totalSize = os.path.getsize(files + '.b64')
         conn.putheader('Content-Length', totalSize)
         conn.putheader('X-API-Version', self._apiVersion)
+        if self._reuse_connection:
+            conn.putheader('Connection', 'keep-alive')
         conn.endheaders()
 
         while mappedfile.tell() < mappedfile.size():
@@ -313,6 +337,7 @@ class connection(object):
         mappedfile.close()
         inputfile.close()
         os.remove(files + '.b64')
+
         response = conn.getresponse()
         body = response.read().decode('utf-8')
 
@@ -322,9 +347,11 @@ class connection(object):
             except ValueError:
                 body = response.read().decode('utf-8')
 
-        conn.close()
+        if not self._reuse_connection:
+            self.close_reusable_connection(conn)
 
         if response.status >= 400:
+            self.close_reusable_connection(conn)
             raise HPOneViewException(body)
 
         return response, body
